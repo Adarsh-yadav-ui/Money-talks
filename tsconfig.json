@@ -18,8 +18,9 @@
         "name": "next"
       }
     ],
-    "paths": {
-      "@/*": ["./src/*"]
+  "paths": {
+      "@/*": ["./src/*"],
+      "@convex/*": ["./convex/*"]
     }
   },
   "include": [
