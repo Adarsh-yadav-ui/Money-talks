@@ -9,10 +9,13 @@
  */
 
 import type * as billing from "../billing.js";
+import type * as cart from "../cart.js";
 import type * as categories from "../categories.js";
+import type * as email from "../email.js";
 import type * as files from "../files.js";
 import type * as http from "../http.js";
 import type * as products from "../products.js";
+import type * as purchases from "../purchases.js";
 import type * as users from "../users.js";
 
 import type {
@@ -23,10 +26,13 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   billing: typeof billing;
+  cart: typeof cart;
   categories: typeof categories;
+  email: typeof email;
   files: typeof files;
   http: typeof http;
   products: typeof products;
+  purchases: typeof purchases;
   users: typeof users;
 }>;
 

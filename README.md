@@ -1,36 +1,117 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Money Talks
+
+A full-stack digital products marketplace built with Next.js 16, Convex, Clerk, and Polar. Creators can sell ebooks, templates, presets, and any digital file — buyers get instant access after purchase.
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Framework | Next.js 16 (App Router) + React 19 |
+| Styling | Tailwind CSS v4 + shadcn/ui (neo-brutalism) |
+| Backend/DB | Convex (reactive full-stack + document DB) |
+| Auth | Clerk (JWT + webhook sync) |
+| Billing | Polar (sandbox, `@convex-dev/polar` + `@polar-sh/sdk`) |
+| Email | Resend |
+| Font | Space Grotesk |
+| Package Manager | Bun |
+
+## Features
+
+- **Marketplace** — Browse, search, and filter products by category
+- **Seller dashboard** — Create, edit, publish/unpublish, and delete products
+- **Digital delivery** — Purchase-gated file downloads and rich text content
+- **Cart system** — Multi-product cart with Polar checkout
+- **Purchases** — View all purchased products with content and downloads
+- **Seller profiles** — Public seller pages showing their products
+- **Responsive** — Mobile-first with hamburger menu
+- **Neo-brutalism UI** — Hard shadows, thick borders, bold typography
+
+## Routes
+
+| Route | Description |
+|-------|-------------|
+| `/` | Landing page |
+| `/explore` | Browse + search + category filter |
+| `/products/[slug]` | Public product detail |
+| `/products/[slug]/success` | Legacy redirect |
+| `/dashboard` | Seller dashboard |
+| `/dashboard/products/[slug]` | Product detail (owner edit/delete) |
+| `/dashboard/products/[slug]/edit` | Edit product form |
+| `/dashboard/products/[slug]/success` | Post-purchase content |
+| `/dashboard/seller/[email]` | Seller profile |
+| `/cart` | Shopping cart |
+| `/cart/success` | Post-cart-checkout |
+| `/purchases` | My purchased products |
+| `/about`, `/blog`, `/contact` | Static pages |
+| `/pricing`, `/faq` | Static pages |
+| `/terms`, `/privacy` | Legal pages |
 
 ## Getting Started
 
-First, run the development server:
+### 1. Clone and install
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
+git clone <repo-url>
+cd money-talks
+bun install
+```
+
+### 2. Set up environment variables
+
+Copy `.env.local.example` to `.env.local` and fill in:
+
+```env
+# Clerk (https://clerk.com)
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
+
+# Convex (https://convex.dev)
+NEXT_PUBLIC_CONVEX_URL=
+
+# Polar (https://polar.sh) — sandbox mode
+POLAR_ACCESS_TOKEN=
+POLAR_ORGANIZATION_ID=
+POLAR_WEBHOOK_SECRET=
+
+# Resend (https://resend.com)
+RESEND_API_KEY=
+```
+
+### 3. Run migrations
+
+```bash
+bunx convex deploy
+```
+
+### 4. Start dev server
+
+```bash
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Architecture
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Convex** handles all backend logic: database, file storage, scheduled jobs, webhooks, and server actions
+- **Clerk webhook** (`/clerk-users-webhook`) syncs users to Convex on sign-up/update
+- **Polar webhook** (via `@convex-dev/polar`) handles order confirmations
+- **Cart** is stored as Convex `cart` table rows (not localStorage) for cross-session persistence
+- **File access** is purchase-gated via `hasPurchased` query; file downloads go through `getProductDownload`
+- **Email** sent via `ctx.scheduler.runAfter(0, internalAction)` from mutations to Resend
 
-## Learn More
+## Neo-brutalism Theme
 
-To learn more about Next.js, take a look at the following resources:
+The design uses custom CSS variables defined in `globals.css`:
+- `--shadow: 4px 4px 0px 0px var(--border)` — the signature hard shadow
+- `--spacing-boxShadowX/Y: 4px` — hover translate offset
+- `--radius-base: 0px` — no border radius anywhere
+- `--font-weight-base: 500`, `--font-weight-heading: 700`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Key Convex Tables
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **users** — Synced from Clerk; role: `"buyer"` | `"creator"`
+- **categories** — 8 default categories auto-seeded
+- **products** — status: `draft` | `published` | `archived`; supports `files[]`, `coverImage`, `content` (rich text)
+- **cart** — buyerId + productId (deduped)
+- **orders** + **orderItems** — Purchases with fee tracking

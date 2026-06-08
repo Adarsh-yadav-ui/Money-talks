@@ -55,7 +55,7 @@ export default function DashboardPage() {
                         <Link
                           key={product._id}
                           href={`/dashboard/products/${product.slug}`}
-                          className="border-2 border-border bg-secondary-background hover:bg-main/10 transition-colors"
+                          className="block border-2 border-border bg-secondary-background shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none transition-all duration-150"
                         >
                           <div className="aspect-4/3 border-b-2 border-border bg-main/20 flex items-center justify-center overflow-hidden">
                             {product.coverImage ? (
@@ -101,7 +101,7 @@ export default function DashboardPage() {
                         <Link
                           key={product._id}
                           href={`/dashboard/products/${product.slug}`}
-                          className="border-2 border-border bg-secondary-background hover:bg-main/10 transition-colors"
+                          className="block border-2 border-border bg-secondary-background shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none transition-all duration-150"
                         >
                           <div className="aspect-4/3 border-b-2 border-border bg-main/20 flex items-center justify-center overflow-hidden">
                             {product.coverImage ? (

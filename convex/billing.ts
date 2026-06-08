@@ -40,6 +40,7 @@ export const createProduct = action({
     sellerId: v.id("users"),
     name: v.string(),
     description: v.string(),
+    content: v.optional(v.string()),
     price: v.number(),
     coverImage: v.optional(v.string()),
     categoryId: v.optional(v.id("categories")),
@@ -78,6 +79,7 @@ export const createProduct = action({
       name: args.name,
       slug,
       description: args.description,
+      content: args.content,
       price: args.price,
       coverImage: args.coverImage,
       categoryId: args.categoryId,
@@ -123,6 +125,42 @@ export const generateCheckoutUrl = action({
     if (!result.ok) {
       console.error("Failed to create checkout:", JSON.stringify(result));
       throw new Error("Failed to create checkout");
+    }
+    return result.value.url;
+  },
+});
+
+export const generateCartCheckoutUrl = action({
+  args: {
+    productIds: v.array(v.id("products")),
+    successUrl: v.optional(v.string()),
+    returnUrl: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+
+    const polarProductIds: string[] = [];
+    for (const id of args.productIds) {
+      const product = await ctx.runQuery(internal.billing.getProduct, { id });
+      if (product?.polarProductId) {
+        polarProductIds.push(product.polarProductId);
+      }
+    }
+    if (polarProductIds.length === 0) throw new Error("No valid products");
+
+    const core = new PolarCore({
+      accessToken: process.env.POLAR_ORGANIZATION_TOKEN!,
+      server: "sandbox",
+    });
+    const result = await checkoutsCreate(core, {
+      products: polarProductIds,
+      customerEmail: identity?.email ?? undefined,
+      successUrl: args.successUrl ?? undefined,
+      returnUrl: args.returnUrl ?? undefined,
+    });
+    if (!result.ok) {
+      console.error("Failed to create cart checkout:", JSON.stringify(result));
+      throw new Error("Failed to create cart checkout");
     }
     return result.value.url;
   },
@@ -216,23 +254,48 @@ export const handleOrderCreated = internalMutation({
       updatedAt: now,
     });
 
+    const productNames: string[] = [];
+
     for (const item of args.items) {
       const itemFee = Math.round(item.priceAmount * 0.1);
       const itemNet = item.priceAmount - itemFee;
+
+      const itemProduct = await ctx.db
+        .query("products")
+        .withIndex("byPolarProductId", (q) =>
+          q.eq("polarProductId", args.polarProductId),
+        )
+        .unique();
+
       await ctx.db.insert("orderItems", {
         orderId,
-        productId: product._id,
+        productId: itemProduct?._id ?? product._id,
         productName: item.productName,
         price: item.priceAmount,
         fee: itemFee,
         net: itemNet,
         createdAt: now,
       });
+
+      productNames.push(item.productName);
+
+      if (itemProduct) {
+        await ctx.db.patch(itemProduct._id, {
+          salesCount: (itemProduct.salesCount ?? 0) + item.quantity,
+          updatedAt: now,
+        });
+      }
     }
 
     await ctx.db.patch(product._id, {
       salesCount: (product.salesCount ?? 0) + 1,
       updatedAt: now,
+    });
+
+    await ctx.scheduler.runAfter(0, internal.email.sendOrderConfirmation, {
+      email: args.customerEmail,
+      productNames,
+      totalAmount: args.totalAmount,
     });
   },
 });

@@ -30,6 +30,7 @@ export default defineSchema({
     name: v.string(),
     slug: v.string(),
     description: v.string(),
+    content: v.optional(v.string()),
     price: v.number(),
     status: v.union(
       v.literal("draft"),
@@ -90,4 +91,11 @@ export default defineSchema({
   })
     .index("byOrder", ["orderId"])
     .index("byProduct", ["productId"]),
+
+  cart: defineTable({
+    buyerId: v.id("users"),
+    productId: v.id("products"),
+    addedAt: v.number(),
+  })
+    .index("byBuyer", ["buyerId"]),
 });

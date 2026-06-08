@@ -24,7 +24,7 @@ export function TestimonialsSection() {
     <section className="border-b-2 border-border bg-secondary-background py-20 md:py-28">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-2xl mx-auto mb-16">
-          <div className="inline-block border-2 border-border bg-main px-4 py-1 text-sm font-base text-main-foreground mb-4">
+          <div className="inline-block border-2 border-border bg-main px-4 py-1 text-sm font-base text-main-foreground mb-4 shadow-shadow">
             Testimonials
           </div>
           <h2 className="text-4xl sm:text-5xl font-heading text-foreground">
@@ -36,7 +36,7 @@ export function TestimonialsSection() {
           {testimonials.map((t) => (
             <div
               key={t.author}
-              className="border-2 border-border bg-background p-6 shadow-shadow flex flex-col"
+              className="border-2 border-border bg-background p-6 shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none transition-all duration-150 flex flex-col"
             >
               <svg className="size-8 text-main mb-4" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />

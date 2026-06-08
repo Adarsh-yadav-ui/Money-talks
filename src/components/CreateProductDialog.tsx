@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -23,9 +24,19 @@ import {
 } from "@/components/ui/select";
 import { RichTextArea } from "@/components/RichTextArea";
 
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+const ALLOWED_FILE_TYPES = [
+  "application/zip", "application/pdf", "video/mp4",
+  "image/jpeg", "image/png", "image/gif", "image/svg+xml",
+  "audio/mpeg", "audio/wav", "text/csv",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "text/plain",
+];
+const ALLOWED_EXTENSIONS = ".zip,.pdf,.mp4,.jpg,.jpeg,.png,.gif,.svg,.mp3,.wav,.csv,.xlsx,.docx,.txt";
+
 const productSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
-  description: z.string().optional(),
   price: z.string().refine((v) => {
     const n = parseFloat(v);
     return !isNaN(n) && n >= 0.5;
@@ -36,6 +47,7 @@ export function CreateProductDialog() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [content, setContent] = useState("");
   const [price, setPrice] = useState("");
   const [categoryId, setCategoryId] = useState<string>("");
   const [files, setFiles] = useState<File[]>([]);
@@ -44,6 +56,7 @@ export function CreateProductDialog() {
   const [creating, setCreating] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [fileError, setFileError] = useState<string | null>(null);
 
   const currentUser = useQuery(api.users.current);
   const categories = useQuery(api.categories.list);
@@ -69,8 +82,33 @@ export function CreateProductDialog() {
   }, [coverFile]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFileError(null);
     const selected = Array.from(e.target.files ?? []);
+    for (const file of selected) {
+      if (file.size > MAX_FILE_SIZE) {
+        setFileError(`"${file.name}" exceeds the 50MB limit.`);
+        return;
+      }
+      if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+        setFileError(`"${file.name}" has an unsupported file type.`);
+        return;
+      }
+    }
     setFiles((prev) => [...prev, ...selected].slice(0, 5));
+  };
+
+  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    if (file && file.size > 5 * 1024 * 1024) {
+      setFileError("Cover image must be under 5MB.");
+      return;
+    }
+    if (file && !file.type.startsWith("image/")) {
+      setFileError("Cover image must be an image file.");
+      return;
+    }
+    setFileError(null);
+    setCoverFile(file);
   };
 
   const removeFile = (index: number) => {
@@ -81,7 +119,7 @@ export function CreateProductDialog() {
     e.preventDefault();
     if (!currentUser) return;
 
-    const parsed = productSchema.safeParse({ name, description, price });
+    const parsed = productSchema.safeParse({ name, price });
     if (!parsed.success) {
       const fieldErrors: Record<string, string> = {};
       for (const issue of parsed.error.issues) {
@@ -126,6 +164,7 @@ export function CreateProductDialog() {
         sellerId: currentUser._id,
         name,
         description,
+        content: content || undefined,
         price: priceInCents,
         coverImage,
         categoryId: (categoryId || undefined) as any,
@@ -136,6 +175,7 @@ export function CreateProductDialog() {
       setResult(`Product created! (ID: ${res.productId})`);
       setName("");
       setDescription("");
+      setContent("");
       setPrice("");
       setCategoryId("");
       setFiles([]);
@@ -192,7 +232,21 @@ export function CreateProductDialog() {
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="description">Description</Label>
-            <RichTextArea value={description} onChange={setDescription} />
+            <Textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Brief description of your product..."
+              rows={4}
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="content">Product Content (optional)</Label>
+            <p className="text-xs text-foreground/60">
+              Rich text content buyers get access to after purchase.
+            </p>
+            <RichTextArea value={content} onChange={setContent} />
           </div>
 
           <div className="flex flex-col gap-2">
@@ -216,12 +270,12 @@ export function CreateProductDialog() {
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label>Cover Image (optional)</Label>
+            <Label>Cover Image (optional) <span className="text-foreground/40 text-xs">(max 5MB)</span></Label>
             <Input
               id="cover"
               type="file"
               accept="image/*"
-              onChange={(e) => setCoverFile(e.target.files?.[0] ?? null)}
+              onChange={handleCoverChange}
             />
             {coverPreview && (
               <div className="aspect-4/3 border-2 border-border mt-1 overflow-hidden">
@@ -235,14 +289,17 @@ export function CreateProductDialog() {
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label>Product Files (max 5)</Label>
+            <Label>Product Files (max 5) <span className="text-foreground/40 text-xs">(max 50MB each)</span></Label>
             <Input
               id="files"
               type="file"
               multiple
               onChange={handleFileChange}
-              accept=".zip,.pdf,.mp4,.jpg,.png,.gif,.svg,.mp3,.wav,.csv,.xlsx,.docx,.txt"
+              accept={ALLOWED_EXTENSIONS}
             />
+            {fileError && (
+              <p className="text-sm text-red-500 font-base">{fileError}</p>
+            )}
             {files.length > 0 && (
               <ul className="flex flex-col gap-1 mt-1">
                 {files.map((f, i) => (
