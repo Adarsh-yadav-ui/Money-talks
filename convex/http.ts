@@ -3,6 +3,7 @@ import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { WebhookEvent } from "@clerk/backend";
 import { Webhook } from "svix";
+import { polar } from "./billing";
 
 const http = httpRouter();
 
@@ -33,6 +34,38 @@ http.route({
 
     return new Response(null, { status: 200 });
   }),
+});
+
+polar.registerRoutes(http as any, {
+  events: {
+    "order.created": async (ctx, event) => {
+      const data = event.data as any;
+      const polarProductId = data.productId;
+      if (!polarProductId) {
+        console.error(
+          "order.created webhook missing productId",
+          JSON.stringify(data),
+        );
+        return;
+      }
+
+      const items = (data.items ?? []).map((item: any) => ({
+        productName: item.label ?? data.product?.name ?? "Product",
+        priceAmount: item.amount ?? 0,
+        quantity: 1,
+      }));
+
+      await ctx.runMutation(internal.billing.handleOrderCreated, {
+        polarOrderId: data.id,
+        polarProductId,
+        customerEmail: data.customer?.email ?? "",
+        customerName: data.customer?.name ?? undefined,
+        totalAmount: data.totalAmount ?? 0,
+        currency: data.currency,
+        items,
+      });
+    },
+  },
 });
 
 async function validateRequest(req: Request): Promise<WebhookEvent | null> {

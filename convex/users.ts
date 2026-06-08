@@ -52,6 +52,7 @@ export const upsertFromClerk = internalMutation({
     if (user === null) {
       await ctx.db.insert("users", {
         ...userAttributes,
+        role: "buyer",
         createdAt: Date.now(),
         updatedAt: Date.now(),
       });
@@ -104,6 +105,15 @@ async function userByClerkUserId(
 }
 
 // convex/users.ts - MODIFIED store mutation
+export const becomeSeller = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) throw new Error("Not authenticated");
+    await ctx.db.patch(user._id, { role: "creator", updatedAt: Date.now() });
+  },
+});
+
 export const store = mutation({
   args: {},
   handler: async (ctx) => {
@@ -141,6 +151,7 @@ export const store = mutation({
         lastName: identity.familyName ?? "",
         username: identity.nickname ?? "",
         imageUrl: identity.pictureUrl ?? "",
+        role: "buyer",
         createdAt: Date.now(),
         updatedAt: Date.now(),
       });

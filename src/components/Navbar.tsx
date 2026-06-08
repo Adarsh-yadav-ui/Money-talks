@@ -58,7 +58,9 @@ export function Navbar() {
             </Unauthenticated>
             <Authenticated>
               <div className="hidden md:flex items-center gap-1">
-                {`Hi, ${currentUser?.firstName}`}
+                <Button variant="neutral" size="sm" asChild>
+                  <Link href="/dashboard">Dashboard</Link>
+                </Button>
               </div>
               <UserButton />
             </Authenticated>
