@@ -21,6 +21,16 @@ export const get = query({
   },
 });
 
+export const getByEmail = query({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("users")
+      .withIndex("byEmail", (q) => q.eq("email", args.email))
+      .unique();
+  },
+});
+
 export const getRecentUsers = query({
   args: {},
   handler: async (ctx) => {

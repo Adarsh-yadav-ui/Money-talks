@@ -44,7 +44,7 @@ export function FeaturesSection() {
     <section className="border-b-2 border-border bg-secondary-background py-20 md:py-28">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-2xl mx-auto mb-16">
-          <div className="inline-block border-2 border-border bg-main px-4 py-1 text-sm font-base text-main-foreground mb-4">
+          <div className="inline-block border-2 border-border bg-main px-4 py-1 text-sm font-base text-main-foreground mb-4 shadow-shadow">
             Why Money Talks
           </div>
           <h2 className="text-4xl sm:text-5xl font-heading text-foreground">

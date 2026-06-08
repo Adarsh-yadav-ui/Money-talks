@@ -1,16 +1,15 @@
 "use client";
 
-import Link from "next/link";
 import { useQuery, useAction, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
 
-export default function ProductPage() {
+export default function PublicProductPage() {
   const { slug } = useParams<{ slug: string }>();
-  const router = useRouter();
   const currentUser = useQuery(api.users.current);
   const product = useQuery(api.products.getBySlug, { slug });
   const seller = useQuery(
@@ -19,12 +18,8 @@ export default function ProductPage() {
   );
   const generateCheckoutUrl = useAction(api.billing.generateCheckoutUrl);
   const addToCart = useMutation(api.cart.addItem);
-  const removeProduct = useMutation(api.products.remove);
-  const updateProduct = useMutation(api.products.update);
   const [buyLoading, setBuyLoading] = useState(false);
   const [cartLoading, setCartLoading] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState(false);
-  const [deleting, setDeleting] = useState(false);
 
   const isOwner = currentUser && product && currentUser._id === product.sellerId;
 
@@ -39,7 +34,7 @@ export default function ProductPage() {
     );
   }
 
-  if (product === null) {
+  if (product === null || product.status !== "published") {
     return (
       <>
         <Navbar />
@@ -50,32 +45,14 @@ export default function ProductPage() {
     );
   }
 
-  const handleDelete = async () => {
-    setDeleting(true);
-    try {
-      await removeProduct({ id: product._id });
-      router.push("/dashboard");
-    } catch (err) {
-      console.error("Delete failed", err);
-      setDeleting(false);
-    }
-  };
-
-  const handleToggleStatus = async () => {
-    const newStatus = product.status === "published" ? "draft" : "published";
-    await updateProduct({ id: product._id, status: newStatus });
-  };
-
   const handleBuy = async () => {
     setBuyLoading(true);
     try {
       const origin = window.location.origin;
-      const successUrl = `${origin}/dashboard/products/${slug}/success`;
-      const returnUrl = `${origin}/dashboard/products/${slug}`;
       const url = await generateCheckoutUrl({
         productId: product._id,
-        successUrl,
-        returnUrl,
+        successUrl: `${origin}/products/${slug}/success`,
+        returnUrl: `${origin}/products/${slug}`,
       });
       window.location.href = url;
     } catch (err) {
@@ -99,42 +76,10 @@ export default function ProductPage() {
     <>
       <Navbar />
       <main className="flex-1 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {isOwner && (
-          <div className="flex items-center gap-3 mb-8 flex-wrap">
-            <Button variant="neutral" size="sm" asChild>
-              <Link href={`/dashboard/products/${slug}/edit`}>Edit</Link>
-            </Button>
-            <Button variant="neutral" size="sm" onClick={handleToggleStatus}>
-              {product.status === "published" ? "Unpublish" : "Publish"}
-            </Button>
-            <span className="text-xs font-base text-foreground/40 border-2 border-border px-2 py-1">
-              {product.status}
-            </span>
-            {!deleteConfirm ? (
-              <Button variant="neutral" size="sm" onClick={() => setDeleteConfirm(true)} className="text-red-500">
-                Delete
-              </Button>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Button size="sm" onClick={handleDelete} disabled={deleting} className="bg-red-500 text-white">
-                  {deleting ? "Deleting..." : "Confirm delete"}
-                </Button>
-                <Button variant="neutral" size="sm" onClick={() => setDeleteConfirm(false)}>
-                  Cancel
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           <div className="aspect-4/3 border-2 border-border bg-main flex items-center justify-center shadow-shadow">
             {product.coverImage ? (
-              <img
-                src={product.coverImage}
-                alt={product.name}
-                className="w-full h-full object-cover"
-              />
+              <img src={product.coverImage} alt={product.name} className="w-full h-full object-cover" />
             ) : (
               <span className="text-main-foreground font-heading text-5xl">
                 {product.name.substring(0, 2).toUpperCase()}
@@ -148,10 +93,7 @@ export default function ProductPage() {
                 {product.name}
               </h1>
               {seller && (
-                <Link
-                  href={`/dashboard/seller/${seller.email}`}
-                  className="text-foreground/60 font-base hover:underline"
-                >
+                <Link href={`/dashboard/seller/${seller.email}`} className="text-foreground/60 font-base hover:underline">
                   by {seller.firstName} {seller.lastName}
                 </Link>
               )}
@@ -167,26 +109,13 @@ export default function ProductPage() {
               </div>
 
               {isOwner ? (
-                <p className="text-sm text-foreground/40 font-base">
-                  You own this product
-                </p>
+                <p className="text-sm text-foreground/40 font-base">You own this product</p>
               ) : (
                 <div className="flex gap-3">
-                  <Button
-                    size="lg"
-                    className="flex-1"
-                    variant="neutral"
-                    onClick={handleAddToCart}
-                    disabled={cartLoading}
-                  >
+                  <Button size="lg" className="flex-1" variant="neutral" onClick={handleAddToCart} disabled={cartLoading}>
                     {cartLoading ? "Adding..." : "Add to Cart"}
                   </Button>
-                  <Button
-                    size="lg"
-                    className="flex-1"
-                    onClick={handleBuy}
-                    disabled={buyLoading}
-                  >
+                  <Button size="lg" className="flex-1" onClick={handleBuy} disabled={buyLoading}>
                     {buyLoading ? "Redirecting..." : "Buy now"}
                   </Button>
                 </div>

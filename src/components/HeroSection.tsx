@@ -6,7 +6,7 @@ export function HeroSection() {
     <section className="relative border-b-2 border-border bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32">
         <div className="max-w-3xl">
-          <div className="inline-block border-2 border-border bg-main px-4 py-1 text-sm font-base text-main-foreground mb-6">
+          <div className="inline-block border-2 border-border bg-main px-4 py-1 text-sm font-base text-main-foreground mb-6 shadow-shadow">
             The creator economy platform
           </div>
 

@@ -13,6 +13,23 @@ export const listPublished = query({
   },
 });
 
+export const listBySellerEmail = query({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    const seller = await ctx.db
+      .query("users")
+      .withIndex("byEmail", (q) => q.eq("email", args.email))
+      .unique();
+    if (!seller) return [];
+
+    return await ctx.db
+      .query("products")
+      .withIndex("bySeller", (q) => q.eq("sellerId", seller._id))
+      .order("desc")
+      .collect();
+  },
+});
+
 export const getBySlug = query({
   args: { slug: v.string() },
   handler: async (ctx, args) => {
@@ -42,6 +59,28 @@ export const listByCategory = query({
       .withIndex("byCategory", (q) => q.eq("categoryId", args.categoryId))
       .order("desc")
       .collect();
+  },
+});
+
+export const searchProducts = query({
+  args: { query: v.string(), categoryId: v.optional(v.id("categories")) },
+  handler: async (ctx, args) => {
+    let products = await ctx.db
+      .query("products")
+      .withIndex("byStatus", (q) => q.eq("status", "published"))
+      .order("desc")
+      .collect();
+
+    const q = args.query.toLowerCase().trim();
+    if (q) {
+      products = products.filter((p) => p.name.toLowerCase().includes(q));
+    }
+
+    if (args.categoryId) {
+      products = products.filter((p) => p.categoryId === args.categoryId);
+    }
+
+    return products;
   },
 });
 
@@ -127,6 +166,7 @@ export const createFromBilling = internalMutation({
     name: v.string(),
     slug: v.string(),
     description: v.string(),
+    content: v.optional(v.string()),
     price: v.number(),
     coverImage: v.optional(v.string()),
     categoryId: v.optional(v.id("categories")),
@@ -146,6 +186,7 @@ export const createFromBilling = internalMutation({
       name: args.name,
       slug: args.slug,
       description: args.description,
+      content: args.content,
       price: args.price,
       coverImage: args.coverImage,
       categoryId: args.categoryId,
