@@ -8,7 +8,11 @@
  * @module
  */
 
+import type * as billing from "../billing.js";
+import type * as categories from "../categories.js";
+import type * as files from "../files.js";
 import type * as http from "../http.js";
+import type * as products from "../products.js";
 import type * as users from "../users.js";
 
 import type {
@@ -18,7 +22,11 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  billing: typeof billing;
+  categories: typeof categories;
+  files: typeof files;
   http: typeof http;
+  products: typeof products;
   users: typeof users;
 }>;
 
@@ -48,4 +56,6 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {};
+export declare const components: {
+  polar: import("@convex-dev/polar/_generated/component.js").ComponentApi<"polar">;
+};
